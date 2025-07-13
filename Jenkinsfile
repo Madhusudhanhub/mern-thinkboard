@@ -28,17 +28,23 @@ pipeline {
     stage('Push to Docker Hub') {
       steps {
         withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-          sh 'echo "$PASSWORD" | docker login -u "$USERNAME" --password-stdin'
-          sh 'docker push $DOCKER_USER/$IMAGE_NAME-backend'
-          sh 'docker push $DOCKER_USER/$IMAGE_NAME-frontend'
+          sh '''
+            echo "$PASSWORD" | docker login -u "$USERNAME" --password-stdin
+            docker push $DOCKER_USER/$IMAGE_NAME-backend
+            docker push $DOCKER_USER/$IMAGE_NAME-frontend
+          '''
         }
       }
     }
 
     stage('Deploy on EC2') {
       steps {
-        sh 'docker-compose down || true'
-        sh 'docker-compose up -d'
+        sh '''
+          docker rm -f thinkboard-backend || true
+          docker rm -f thinkboard-frontend || true
+          docker-compose down || true
+          docker-compose up -d
+        '''
       }
     }
   }
