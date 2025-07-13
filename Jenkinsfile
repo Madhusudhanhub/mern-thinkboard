@@ -3,7 +3,7 @@ pipeline {
 
   environment {
     DOCKER_USER = 'madhusudhan143'
-    IMAGE_NAME = 'mern-thinkboard-dev'
+    IMAGE_NAME = 'mern-thinkboard-prod'
   }
 
   stages {
@@ -25,20 +25,26 @@ pipeline {
       }
     }
 
-    stage('Push to Docker Hub') {
+    stage('Push to Docker Hub (Private Prod Repo)') {
       steps {
         withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-          sh 'echo "$PASSWORD" | docker login -u "$USERNAME" --password-stdin'
-          sh 'docker push $DOCKER_USER/$IMAGE_NAME-backend'
-          sh 'docker push $DOCKER_USER/$IMAGE_NAME-frontend'
+          sh '''
+            echo "$PASSWORD" | docker login -u "$USERNAME" --password-stdin
+            docker push $DOCKER_USER/$IMAGE_NAME-backend
+            docker push $DOCKER_USER/$IMAGE_NAME-frontend
+          '''
         }
       }
     }
 
-    stage('Deploy on EC2') {
+    stage('Deploy on EC2 (Prod)') {
       steps {
-        sh 'docker-compose down || true'
-        sh 'docker-compose up -d'
+        sh '''
+          docker rm -f thinkboard-backend || true
+          docker rm -f thinkboard-frontend || true
+          docker-compose down || true
+          docker-compose up -d
+        '''
       }
     }
   }
